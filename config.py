@@ -1,0 +1,8 @@
+# -*- coding: utf-8 -*-
+
+UDP_IP = "10.159.0.2"
+UDP_BROADCAST = "10.159.0.255"
+UDP_PORT=22020
+
+ALLOW_RANGES    = ["10.159.0.0/16"]
+PROTECTED_NETS  = ["10.159.0.0/24"]
