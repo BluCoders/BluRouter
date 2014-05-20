@@ -13,7 +13,7 @@ from select import select
 from config import *
 
 # PROTOCOL DOCUMENTATION
-#       Runs on broadcast 10.159.0.255 port 22020
+#       Runs on broadcast 192.168.0.255 port 12345
 #       hello: Gave it a type to be able to do other stuff with protocol later :)
 #               ttl: TTL
 #               nets: SUBNETS
