@@ -7,7 +7,6 @@ import socket
 import json
 import time
 import atexit
-from pprint import pprint
 from select import select
 
 from config import *
@@ -70,11 +69,11 @@ class RouterTimeds:
             l = sorted([cleanup_net(i.strip()) for i in f.readlines()])
             f.close()
         except:
-            print self.routefile+" is trapped in another dimension.."
+            log.log("readroutes: "+self.routefile+" is trapped in another dimension..")
             return
 
         if l != self.myroutes:
-            print "New routes!"
+            log.log("readroutes: New routes found in the routefile!")
             self.myroutes = l
             self.hello()
             self.last_hello = ts
@@ -89,7 +88,6 @@ class RouterTimeds:
             self.last_hello = ts
     def hello(self):
         """When this is called, it is time to broadcast our existence"""
-        print "Sent hello packet"
         socks.out({'type':'hello', 'ttl':self.hello_ttl, 'nets':self.myroutes})
 
     def ts(self):
@@ -110,7 +108,7 @@ class RouterNeighbors():
                 delete.append(ip)
 
         for ip in delete:
-            print "RouterNeighbors: ip expired"
+            log.log("RouterNeighbors.run: ip "+str(ip)+" expired")
             router.delroutes(ip)
             del self.timer[ip]
 
@@ -227,7 +225,7 @@ class RouterLocal():
     def route_add(self, route, gw):
         argv = ["route", "add", "-net", route, "gw", gw]
         ret = subprocess.call(argv)
-        print " ".join(argv)+": "+str(ret)
+        log.log("route_add: "+" ".join(argv)+": "+str(ret))
         if ret != 0:
             return False
         else:
@@ -236,7 +234,7 @@ class RouterLocal():
     def route_del(self, route, gw):
         argv = ["route", "del", "-net", route, "gw", gw]
         ret = subprocess.call(argv)
-        print " ".join(argv)+": "+str(ret)
+        log.log("route_del: "+" ".join(argv)+": "+str(ret))
         if ret != 0:
             return False
         else:
