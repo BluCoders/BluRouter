@@ -120,7 +120,7 @@ class RouterNeighbors():
 
         for ip in delete:
             self.log.log("RouterNeighbors.run: ip "+str(ip)+" expired")
-            router.delroutes(ip)
+            self.router.delroutes(ip)
             del self.timer[ip]
 
 
