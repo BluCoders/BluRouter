@@ -30,12 +30,13 @@ def diff(a, b):
     return [aa for aa in a if aa not in b]
 
 
-
+# Uses neigh
 class RouterSockets:
     """RouterProtocol takes input and processes it. It also encodes stuff"""
     sel_timeout = 1
-    def __init__(self, bufsiz):
+    def __init__(self, bufsiz, neigh):
         self.maxin = bufsiz
+        self.neigh = neigh
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((UDP_BROADCAST, UDP_PORT))
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -48,7 +49,7 @@ class RouterSockets:
 
     def route(self, addr, data):
         if data['type'] == 'hello':
-            neigh.hello(addr[0], data)
+            self.neigh.hello(addr[0], data)
 
     def input(self):
         data, src = self.sock.recvfrom(self.maxin)
@@ -58,10 +59,14 @@ class RouterSockets:
     def out(self, data):
         self.sock.sendto(json.dumps(data), (UDP_BROADCAST, UDP_PORT))
 
+# Uses log, socks, neigh
 class RouterTimeds:
     myroutes = []
-    def __init__(self, interval, ttl, myroutefile):
+    def __init__(self, interval, ttl, myroutefile, log, socks, neigh):
         self.routefile = myroutefile
+        self.log = log
+        self.socks = socks
+        self.neigh = neigh
         self.hello_interval = interval
         self.hello_ttl = ttl
         self.last_hello = 0
@@ -72,11 +77,11 @@ class RouterTimeds:
             l = sorted([cleanup_net(i.strip()) for i in f.readlines()])
             f.close()
         except:
-            log.log("readroutes: "+self.routefile+" is trapped in another dimension..")
+            self.log.log("readroutes: "+self.routefile+" is trapped in another dimension..")
             return
 
         if l != self.myroutes:
-            log.log("readroutes: New routes found in the routefile!")
+            self.log.log("readroutes: New routes found in the routefile!")
             self.myroutes = l
             self.hello()
             self.last_hello = ts
@@ -84,22 +89,25 @@ class RouterTimeds:
     def run(self):
         ts = self.ts()
         self.readroutes(ts)
-        neigh.run()
+        self.neigh.run()
 
         if (ts-self.last_hello) >= self.hello_interval:
             self.hello()
             self.last_hello = ts
     def hello(self):
         """When this is called, it is time to broadcast our existence"""
-        socks.out({'type':'hello', 'ttl':self.hello_ttl, 'nets':self.myroutes})
+        self.socks.out({'type':'hello', 'ttl':self.hello_ttl, 'nets':self.myroutes})
 
     def ts(self):
         return time.time()
 
+# Uses log, router
 class RouterNeighbors():
     timer = {}
-    def __init__(self, maxttl):
+    def __init__(self, maxttl, log, router):
         self.max_ttl = maxttl
+        self.log = log
+        self.router = router
 
     def run(self):
         """ Remove expireds """
@@ -111,7 +119,7 @@ class RouterNeighbors():
                 delete.append(ip)
 
         for ip in delete:
-            log.log("RouterNeighbors.run: ip "+str(ip)+" expired")
+            self.log.log("RouterNeighbors.run: ip "+str(ip)+" expired")
             router.delroutes(ip)
             del self.timer[ip]
 
@@ -128,15 +136,21 @@ class RouterNeighbors():
 
         until = ttl+self.ts()
         self.timer[addr] = until
-        router.setroutes(addr, nets)
+        self.router.setroutes(addr, nets)
     def ts(self):
         return time.time()
 
+# Uses log
 class Router:
-    routes = {}
+    def __init__(self, localrouter, log):
+        self.routes = {}
+        self.log = log
+        self.lr = localrouter
+    def settimed(self, timed):
+        self.timed = timed
     def shutdown(self):
         for ip in self.routes:
-            localrouter.delete_multi(self.routes[ip], ip)
+            self.lr.delete_multi(self.routes[ip], ip)
 
     def contains(self, new, routes):
         new = ipaddr.IPv4Network(new)
@@ -166,7 +180,7 @@ class Router:
         return False
 
     def owns(self, route):
-        return self.contains(route, timed.myroutes)
+        return self.contains(route, self.timed.myroutes)
 
     def has(self, ip, route):
         if not ip in self.routes:
@@ -180,31 +194,32 @@ class Router:
         old = self.routes[addr]
         for route in routes:
             if not self.checkranges(route):
-                log.log(str(addr)+" tried to send us "+str(route)+", which is not in allowed ranges :/ (fix: poke hawken)")
+                self.log.log(str(addr)+" tried to send us "+str(route)+", which is not in allowed ranges :/ (fix: poke hawken)")
                 continue
             if self.owns(route):
-                log.log(str(addr)+" tried to send us "+str(route)+", which is MINE!!!! (fix: poke hawken)")
+                self.log.log(str(addr)+" tried to send us "+str(route)+", which is MINE!!!! (fix: poke hawken)")
                 continue
             ip = self.busy(route, addr)
             if ip != False:
-                log.log(str(addr)+" tried to send us "+str(route)+", which is owned by "+ip+" (fix: poke hawken)")
+                self.log.log(str(addr)+" tried to send us "+str(route)+", which is owned by "+ip+" (fix: poke hawken)")
                 continue
             new.append(route)
         create = diff(new, old)
         delete = diff(old, new)
         self.routes[addr] = new
-        localrouter.add_multi(create, addr)
-        localrouter.delete_multi(delete, addr)
+        self.lr.add_multi(create, addr)
+        self.lr.delete_multi(delete, addr)
 
     def delroutes(self, addr):
         self.setroutes(addr, [])
         del self.routes[addr]
 
-
+# Uses log
 class RouterLocal():
     table = {}
-    def __init__(self):
+    def __init__(self, log):
         self.get_kernel_table()
+        self.log = log
 
     def get_kernel_table(self):
         f = open("/proc/net/route", "r")
@@ -228,7 +243,7 @@ class RouterLocal():
     def route_add(self, route, gw):
         argv = ["route", "add", "-net", route, "gw", gw]
         ret = subprocess.call(argv)
-        log.log("route_add: "+" ".join(argv)+": "+str(ret))
+        self.log.log("route_add: "+" ".join(argv)+": "+str(ret))
         if ret != 0:
             return False
         else:
@@ -237,7 +252,7 @@ class RouterLocal():
     def route_del(self, route, gw):
         argv = ["route", "del", "-net", route, "gw", gw]
         ret = subprocess.call(argv)
-        log.log("route_del: "+" ".join(argv)+": "+str(ret))
+        self.log.log("route_del: "+" ".join(argv)+": "+str(ret))
         if ret != 0:
             return False
         else:
@@ -246,14 +261,14 @@ class RouterLocal():
 
     def add(self, route, gw):
         if route in self.table:
-            log.log("BIG HUGE WARNING: There is a route already present blocking "+str(route)+" from being added!")
+            self.log.log("BIG HUGE WARNING: There is a route already present blocking "+str(route)+" from being added!")
             return
         if self.route_add(route,gw):
             self.table[route] = gw
     
     def delete(self, route, gw):
         if not route in self.table:
-            log.log("BIG HUGE WARNING: There route for "+str(route)+" that we wanted to delete is not present!")
+            self.log.log("BIG HUGE WARNING: There route for "+str(route)+" that we wanted to delete is not present!")
             return
         if self.route_del(route,gw):
             del self.table[route]
@@ -279,7 +294,7 @@ class LogSyslog():
     def log(self, x):
         syslog.syslog(self.pri, x)
 
-def unload():
+def unload(router):
     router.shutdown()
 
 
@@ -287,16 +302,17 @@ class MyDaemon(Daemon):
     def run(self):
         #log = LogStdout()
         log = LogSyslog(syslog_facil, syslog_pri)
-        router      = Router()
-        localrouter = RouterLocal()
+        localrouter = RouterLocal(log)
+        router      = Router(localrouter, log)
         # max ttl to accept from other hosts
-        neigh       = RouterNeighbors(3600)
-        # Interval between transmitting routes, timeout before we are offline, file with routes separated by newline
-        timed       = RouterTimeds(30, 90, "routes.txt")
+        neigh       = RouterNeighbors(3600, log, router)
         # Max buf size for a single packet. Will limit available routes
-        socks       = RouterSockets(65536)
+        socks       = RouterSockets(65536, neigh)
+        # Interval between transmitting routes, timeout before we are offline, file with routes separated by newline
+        timed       = RouterTimeds(30, 90, routesfile, log, socks, neigh)
+        router.settimed(timed)
 
-        atexit.register(unload)
+        atexit.register(unload, router)
         while True:
             timed.run()
             socks.select()

@@ -4,7 +4,7 @@
 # Found via: http://stackoverflow.com/questions/473620/how-do-you-create-a-daemon-in-python
 
 import sys, os, time, atexit
-from signal import SIGTERM 
+from signal import SIGTERM, SIGINT
 
 class Daemon:
 	"""
@@ -107,6 +107,8 @@ class Daemon:
 		# Try killing the daemon process	
 		try:
 			while 1:
+				os.kill(pid, SIGINT)
+				time.sleep(0.5)
 				os.kill(pid, SIGTERM)
 				time.sleep(0.1)
 		except OSError, err:
