@@ -11,3 +11,6 @@ PROTECTED_NETS  = ["192.168.0.0/24"]
 
 syslog_pri = syslog.LOG_NOTICE
 syslog_facil = syslog.LOG_USER
+
+#pidfile='/opt/BluRouter/router.pid'
+pidfile='router.pid'

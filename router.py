@@ -8,7 +8,9 @@ import json
 import time
 import atexit
 import syslog
+import sys
 from select import select
+from daemon import Daemon
 
 from config import *
 
@@ -281,17 +283,38 @@ def unload():
     router.shutdown()
 
 
-#log = LogStdout()
-log = LogSyslog(syslog_facil, syslog_pri)
-router      = Router()
-localrouter = RouterLocal()
-neigh       = RouterNeighbors(3600) # max ttl to accept from other hosts
-timed       = RouterTimeds(30, 90, "routes.txt")  # Interval between transmitting routes, timeout before we are offline, file with routes separated by newline
-socks       = RouterSockets(65536) # Max buf size for a single packet. Will limit available routes
+class MyDaemon(Daemon):
+    def run(self):
+        #log = LogStdout()
+        log = LogSyslog(syslog_facil, syslog_pri)
+        router      = Router()
+        localrouter = RouterLocal()
+        # max ttl to accept from other hosts
+        neigh       = RouterNeighbors(3600)
+        # Interval between transmitting routes, timeout before we are offline, file with routes separated by newline
+        timed       = RouterTimeds(30, 90, "routes.txt")
+        # Max buf size for a single packet. Will limit available routes
+        socks       = RouterSockets(65536)
 
-atexit.register(unload)
+        atexit.register(unload)
+        while True:
+            timed.run()
+            socks.select()
 
-
-while True:
-    timed.run()
-    socks.select()
+daemon = MyDaemon(pidfile)
+if len(sys.argv) == 2:
+    if 'start' == sys.argv[1]:
+        daemon.start()
+    elif 'stop' == sys.argv[1]:
+        daemon.stop()
+    elif 'restart' == sys.argv[1]:
+        daemon.restart()
+    elif 'test' == sys.argv[1]:
+        daemon.run()
+    else:
+        print "Unknown command"
+        sys.exit(2)
+    sys.exit(0)
+else:
+    print "usage: %s start|stop|restart|test" % sys.argv[0]
+    sys.exit(2)
