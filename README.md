@@ -9,8 +9,6 @@ BluRouter is our own internal routing system (screw quagga-ware...)
 ## TODO
 
 ### Important
-* Logging to syslog and removal of "sent hello packet"
-* Daemonizable (check pid, fork, write pid, ...)
 * Some way to catch and syslog python errors (try: except: the main loop perhaps?)
 * command line options (especially: where is our config file?)
 * More elegant configuration (more customization? There is a few constants in router.py itself..)
