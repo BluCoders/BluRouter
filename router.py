@@ -7,6 +7,7 @@ import socket
 import json
 import time
 import atexit
+import syslog
 from select import select
 
 from config import *
@@ -263,17 +264,25 @@ class RouterLocal():
             self.delete(route, gw)
         return
 
-class Log():
+class LogStdout():
     def __init__(self):
         return
     def log(self, x):
         print "Log: "+str(x)
 
+class LogSyslog():
+    def __init__(self, fac, priority, idn="BluRouter"):
+        syslog.openlog(facility=fac, ident=idn)
+        self.pri = priority
+    def log(self, x):
+        syslog.syslog(self.pri, x)
+
 def unload():
     router.shutdown()
 
 
-log = Log()
+#log = LogStdout()
+log = LogSyslog(syslog_facil, syslog_pri)
 router      = Router()
 localrouter = RouterLocal()
 neigh       = RouterNeighbors(3600) # max ttl to accept from other hosts
