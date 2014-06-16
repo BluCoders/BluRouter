@@ -2,6 +2,11 @@
 
 BluRouter is our own internal routing system (screw quagga-ware...)
 
+# Howto
+
+* Edit the config-example.py exactly as you need it, then save as config.py
+* Run daemon.py, using 'daemon.py start', to daemonize the process.
+
 # Requirements
 
 * python-ipaddr
