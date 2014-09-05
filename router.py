@@ -238,7 +238,10 @@ class RouterLocal():
             self.table[dst] = gw
     
     def dehex(self, ip):
-        return ".".join(list(reversed([str(int(ip[i:i+2], 16)) for i in range(0, len(ip), 2)])))
+        tmp = [str(int(ip[i:i+2], 16)) for i in range(0, len(ip), 2)]
+        if endian == 0:
+            tmp = reversed(tmp)
+        return ".".join(list(tmp))
 
     def route_add(self, route, gw):
         argv = ["route", "add", "-net", route, "gw", gw]

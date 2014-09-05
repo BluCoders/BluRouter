@@ -14,3 +14,8 @@ syslog_facil = syslog.LOG_USER
 
 routesfile='/path/to/routes.txt'
 pidfile='/path/to/router.pid'
+
+# little endian (x86 / amd64)
+endian=0
+# big endian
+#endian=1
