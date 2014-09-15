@@ -79,7 +79,13 @@ class Daemon:
 			pid = None
 	
 		if pid:
-			message = "pidfile %s already exist. Daemon already running?\n"
+		    try:
+			os.kill(pid,0)
+		    except OSError:
+			sys.stderr.write("Removing old pidfile\n")
+			os.remove(self.pidfile)
+		    else:
+			message = "router already running according to %s.\n"
 			sys.stderr.write(message % self.pidfile)
 			sys.exit(1)
 		
