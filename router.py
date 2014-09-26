@@ -30,13 +30,14 @@ def diff(a, b):
     return [aa for aa in a if aa not in b]
 
 
-# Uses neigh
+# Uses log, neigh
 class RouterSockets:
     """RouterProtocol takes input and processes it. It also encodes stuff"""
     sel_timeout = 1
-    def __init__(self, bufsiz, neigh):
+    def __init__(self, bufsiz, neigh, log):
         self.maxin = bufsiz
         self.neigh = neigh
+        self.log = log
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((UDP_BROADCAST, UDP_PORT))
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -57,7 +58,10 @@ class RouterSockets:
         self.route(src, data)
 
     def out(self, data):
-        self.sock.sendto(json.dumps(data), (UDP_BROADCAST, UDP_PORT))
+        try:
+            self.sock.sendto(json.dumps(data), (UDP_BROADCAST, UDP_PORT))
+        except socket.error as e:
+            self.log.log("RouterSockets.out failed: "+e.strerror)
 
 # Uses log, socks, neigh
 class RouterTimeds:
@@ -302,15 +306,17 @@ def unload(router):
 
 
 class MyDaemon(Daemon):
-    def run(self):
-        #log = LogStdout()
-        log = LogSyslog(syslog_facil, syslog_pri)
+    def run(self, foreground=False):
+        if foreground:
+            log = LogStdout()
+        else:
+            log = LogSyslog(syslog_facil, syslog_pri)
         localrouter = RouterLocal(log)
         router      = Router(localrouter, log)
         # max ttl to accept from other hosts
         neigh       = RouterNeighbors(3600, log, router)
         # Max buf size for a single packet. Will limit available routes
-        socks       = RouterSockets(65536, neigh)
+        socks       = RouterSockets(65536, neigh, log)
         # Interval between transmitting routes, timeout before we are offline, file with routes separated by newline
         timed       = RouterTimeds(30, 90, routesfile, log, socks, neigh)
         router.settimed(timed)
@@ -329,7 +335,7 @@ if len(sys.argv) == 2:
     elif 'restart' == sys.argv[1]:
         daemon.restart()
     elif 'test' == sys.argv[1]:
-        daemon.run()
+        daemon.run(True)
     else:
         print "Unknown command"
         sys.exit(2)
