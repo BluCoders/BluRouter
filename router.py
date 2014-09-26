@@ -14,6 +14,47 @@ from daemon import Daemon
 
 from config import *
 
+# TODO:
+# Possibility of binding a neighbor timeout to a callback.
+# This makes it possible to profile the uptime of the network.
+
+# hello_interval:
+# Seconds between sending route advertisements
+# Less = more network spam
+# more = slow reaction time
+# We also automatically send hello if you change routes.txt,
+# which happens at least every select_timeout seconds.
+hello_interval = 30
+
+# hello_timeout:
+# For the remote end: How long time can we be silent before we are assumed dead?
+# setting 100 means we have a max of 100 seconds (2 lost packets) before we are assumed to be dead
+# You can set this based on how intolerant to network loss you can be;
+# if you do not tolerate losses,    set it between 1-2 intervals.
+# If you tolerate one lost packet,  set it between 2-3 intervals.
+# If you tolerate two lost packets, set it between 3-4 intervals.
+hello_timeout = 100
+
+# select_timeout:
+# Give up on select every second
+# This controls how often the timed code runs
+# A low value is nice because:
+#  - I don't think each round is very very expensive
+#  - It keeps the program responsive
+# This parameter controls the minimum intervals of
+#  - How often we check if we need to send hello messages
+#  - How often we read the routes file
+#  - How often we check the neighbors for timeouts
+# Try to keep it at most half of hello_interval
+# Do not set it to 0 as it means infinite
+select_timeout = 1
+
+# max_ttl:
+# This is how long someone can be offline without us assuming they are still online
+# We will never let someone say they can be silent for more than an hour
+max_ttl=3600
+
+
 # PROTOCOL DOCUMENTATION
 #       Runs on broadcast 192.168.0.255 port 12345
 #       hello: Gave it a type to be able to do other stuff with protocol later :)
@@ -33,7 +74,6 @@ def diff(a, b):
 # Uses log, neigh
 class RouterSockets:
     """RouterProtocol takes input and processes it. It also encodes stuff"""
-    sel_timeout = 1
     def __init__(self, bufsiz, neigh, log):
         self.maxin = bufsiz
         self.neigh = neigh
@@ -43,7 +83,7 @@ class RouterSockets:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     def select(self):
-        inr, outr, exr = select([self.sock],[],[], self.sel_timeout)
+        inr, outr, exr = select([self.sock],[],[], select_timeout)
         for s in inr:
             if s == self.sock:
                 self.input()
@@ -66,13 +106,11 @@ class RouterSockets:
 # Uses log, socks, neigh
 class RouterTimeds:
     myroutes = []
-    def __init__(self, interval, ttl, myroutefile, log, socks, neigh):
+    def __init__(self, myroutefile, log, socks, neigh):
         self.routefile = myroutefile
         self.log = log
         self.socks = socks
         self.neigh = neigh
-        self.hello_interval = interval
-        self.hello_ttl = ttl
         self.last_hello = 0
 
     def readroutes(self, ts):
@@ -95,12 +133,12 @@ class RouterTimeds:
         self.readroutes(ts)
         self.neigh.run()
 
-        if (ts-self.last_hello) >= self.hello_interval:
+        if (ts-self.last_hello) >= hello_interval:
             self.hello()
             self.last_hello = ts
     def hello(self):
         """When this is called, it is time to broadcast our existence"""
-        self.socks.out({'type':'hello', 'ttl':self.hello_ttl, 'nets':self.myroutes})
+        self.socks.out({'type':'hello', 'ttl':hello_timeout, 'nets':self.myroutes})
 
     def ts(self):
         return time.time()
@@ -108,8 +146,7 @@ class RouterTimeds:
 # Uses log, router
 class RouterNeighbors():
     timer = {}
-    def __init__(self, maxttl, log, router):
-        self.max_ttl = maxttl
+    def __init__(self, log, router):
         self.log = log
         self.router = router
 
@@ -135,8 +172,8 @@ class RouterNeighbors():
             return
         if ttl < 0:
             return
-        if ttl > self.max_ttl:
-            ttl = self.max_ttl
+        if ttl > max_ttl:
+            ttl = max_ttl
 
         until = ttl+self.ts()
         self.timer[addr] = until
@@ -314,11 +351,11 @@ class MyDaemon(Daemon):
         localrouter = RouterLocal(log)
         router      = Router(localrouter, log)
         # max ttl to accept from other hosts
-        neigh       = RouterNeighbors(3600, log, router)
+        neigh       = RouterNeighbors(log, router)
         # Max buf size for a single packet. Will limit available routes
         socks       = RouterSockets(65536, neigh, log)
-        # Interval between transmitting routes, timeout before we are offline, file with routes separated by newline
-        timed       = RouterTimeds(30, 90, routesfile, log, socks, neigh)
+        # file with routes separated by newline
+        timed       = RouterTimeds(routesfile, log, socks, neigh)
         router.settimed(timed)
 
         atexit.register(unload, router)
