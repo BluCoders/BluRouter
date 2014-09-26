@@ -14,6 +14,18 @@ from daemon import Daemon
 
 from config import *
 
+def globalscheck(x):
+    for y in x:
+        if not y in globals():
+            print "Please define "+y+" in config.py"
+            sys.exit(1)
+
+globalscheck([
+    'UDP_IP', 'UDP_BROADCAST', 'UDP_PORT', 'ALLOW_RANGES', 'PROTECTED_NETS',
+    'syslog_pri', 'syslog_facil', 'routesfile', 'pidfile', 'endian',
+    'hello_interval', 'hello_timeout', 'select_timeout', 'max_ttl'
+    ])
+
 # TODO:
 # Possibility of binding a neighbor timeout to a callback.
 # This makes it possible to profile the uptime of the network.
