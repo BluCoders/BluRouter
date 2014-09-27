@@ -58,6 +58,9 @@ class RouterSockets:
 
     def input(self):
         data, src = self.sock.recvfrom(self.maxin)
+        if not ipaddr.IPv4Address(src[0]) in UDP_SUBNET:
+            self.log.log("RouterSockets.input: Discarding packet from "+str(src[0])+"")
+            return
         try:
             data = json.loads(data)
         except ValueError:
@@ -348,7 +351,7 @@ class MyDaemon(Daemon):
             socks.select()
 
 globalscheck([
-    'UDP_IP', 'UDP_BROADCAST', 'UDP_PORT', 'ALLOW_RANGES', 'PROTECTED_NETS',
+    'UDP_IP', 'UDP_SUBNET', 'UDP_BROADCAST', 'UDP_PORT', 'ALLOW_RANGES', 'PROTECTED_NETS',
     'syslog_pri', 'syslog_facil', 'routesfile', 'pidfile', 'endian',
     'hello_interval', 'hello_timeout', 'select_timeout', 'max_ttl'
 ])
@@ -356,6 +359,7 @@ globalscheck([
 # ipaddr-ize PROTECTED_NETS, ALLOW_RANGES
 PROTECTED_NETS = [ipaddr.IPv4Network(x) for x in PROTECTED_NETS]
 ALLOW_RANGES   = [ipaddr.IPv4Network(x) for x in ALLOW_RANGES]
+UDP_SUBNET = ipaddr.IPv4Network(UDP_SUBNET)
 
 
 daemon = MyDaemon(pidfile)
