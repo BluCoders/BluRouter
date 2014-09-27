@@ -3,7 +3,9 @@
 import syslog
 
 UDP_IP = "192.168.0.1"                    # Your IP within your VPN/LAN
-UDP_SUBNET = "192.168.0.0/24"             # Source addresses to accept packets from
+# Source addresses to accept packets from
+# This should be limited to the addresses that also run blurouter.
+UDP_SUBNET = "192.168.0.0/24"
 UDP_BROADCAST = "192.168.0.255"           # Address all boxes will use to broadcast
 UDP_PORT=12345                            # Port all boxes will use to broadcast
 
@@ -58,3 +60,12 @@ select_timeout = 1
 # This is how long someone can be offline without us assuming they are still online
 # We will never let someone say they can be silent for more than an hour
 max_ttl=3600
+
+# newip_sendnets:
+# Testing this behavior:
+# When we receive hello from a new ip (expired or never seen before), we send our own hello packet back.
+# The intended effect is that a new host entering the network is bootstrapped by us immediately.
+# Normally, it takes up to 30 seconds before all routes are added.
+# Potential problem: In a network of n machines starting up, minimum n**2 packets are sent.
+# True or False
+newip_sendnets = True

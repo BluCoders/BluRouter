@@ -37,7 +37,11 @@ def diff(a, b):
 
 # Uses log, neigh
 class RouterSockets:
-    """RouterProtocol takes input and processes it. It also encodes stuff"""
+    """
+    RouterProtocol takes input and processes it. It also encodes stuff with json.
+    Can route packets to different destinations within the program, if needed.
+    What to find here: socket in/out/initialization + select
+    """
     def __init__(self, bufsiz, neigh, log):
         self.maxin = bufsiz
         self.neigh = neigh
@@ -79,6 +83,12 @@ class RouterSockets:
 
 # Uses log, socks, neigh
 class RouterTimeds:
+    """
+    RouterTimeds contains the code we run mostly every second.
+    It is responsible for:
+     - propagating the routes file (sending hello)
+     - calling RouterNeighbors run function to time out neighbors
+    """
     myroutes = []
     def __init__(self, myroutefile, log, socks, neigh):
         self.routefile = myroutefile
@@ -125,7 +135,7 @@ class RouterNeighbors():
         self.router = router
 
     def run(self):
-        """ Remove expireds """
+        """ Remove expired neighbors """
         ts = self.ts()
         delete = []
         for ip in self.timer:
@@ -219,6 +229,8 @@ class Router:
         # If this node is new, initialize an empty array
         if not addr in self.routes:
             self.routes[addr] = []
+            if newip_sendnets:
+                self.timed.hello()
         # New routes and routes we already have are diffed to know what actions to apply
         new = []
         old = self.routes[addr]
@@ -355,7 +367,7 @@ class MyDaemon(Daemon):
 globalscheck([
     'UDP_IP', 'UDP_SUBNET', 'UDP_BROADCAST', 'UDP_PORT', 'ALLOW_RANGES', 'PROTECTED_NETS',
     'syslog_pri', 'syslog_facil', 'routesfile', 'pidfile', 'endian',
-    'hello_interval', 'hello_timeout', 'select_timeout', 'max_ttl'
+    'hello_interval', 'hello_timeout', 'select_timeout', 'max_ttl', 'newip_sendnets'
 ])
 
 # ipaddr-ize PROTECTED_NETS, ALLOW_RANGES
