@@ -3,6 +3,7 @@
 import syslog
 
 UDP_IP = "192.168.0.1"                    # Your IP within your VPN/LAN
+UDP_SUBNET = "192.168.0.0/24"             # Source addresses to accept packets from
 UDP_BROADCAST = "192.168.0.255"           # Address all boxes will use to broadcast
 UDP_PORT=12345                            # Port all boxes will use to broadcast
 
