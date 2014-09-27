@@ -14,18 +14,6 @@ from daemon import Daemon
 
 from config import *
 
-def globalscheck(x):
-    for y in x:
-        if not y in globals():
-            print "Please define "+y+" in config.py"
-            sys.exit(1)
-
-globalscheck([
-    'UDP_IP', 'UDP_BROADCAST', 'UDP_PORT', 'ALLOW_RANGES', 'PROTECTED_NETS',
-    'syslog_pri', 'syslog_facil', 'routesfile', 'pidfile', 'endian',
-    'hello_interval', 'hello_timeout', 'select_timeout', 'max_ttl'
-    ])
-
 # TODO:
 # Possibility of binding a neighbor timeout to a callback.
 # This makes it possible to profile the uptime of the network.
@@ -35,10 +23,11 @@ globalscheck([
 #       hello: Gave it a type to be able to do other stuff with protocol later :)
 #               ttl: TTL
 #               nets: SUBNETS
-def cleanup_net(x):
-    return str(ipaddr.IPv4Network(x))
-def cleanup_addr(x):
-    return str(ipaddr.IPv4Address(x))
+def globalscheck(x):
+    for y in x:
+        if not y in globals():
+            print "Please define "+y+" in config.py"
+            sys.exit(1)
 
 def diff(a, b):
     b = set(b)
@@ -98,7 +87,7 @@ class RouterTimeds:
     def readroutes(self, ts):
         try:
             f = open(self.routefile, "r")
-            l = sorted([cleanup_net(i.strip()) for i in f.readlines()])
+            l = sorted([ipaddr.IPv4Network(i.strip()) for i in f.readlines()])
             f.close()
         except:
             self.log.log("readroutes: "+self.routefile+" is trapped in another dimension..")
@@ -120,7 +109,7 @@ class RouterTimeds:
             self.last_hello = ts
     def hello(self):
         """When this is called, it is time to broadcast our existence"""
-        self.socks.out({'type':'hello', 'ttl':hello_timeout, 'nets':self.myroutes})
+        self.socks.out({'type':'hello', 'ttl':hello_timeout, 'nets':[str(x) for x in self.myroutes]})
 
     def ts(self):
         return time.time()
@@ -143,6 +132,7 @@ class RouterNeighbors():
 
         for ip in delete:
             self.log.log("RouterNeighbors.run: ip "+str(ip)+" expired")
+            # TODO: optional callback
             self.router.delroutes(ip)
             del self.timer[ip]
 
@@ -158,7 +148,7 @@ class RouterNeighbors():
             netstmp = data['nets']
             nets = []
             for net in netstmp:
-                nets.append(str(net))
+                nets.append(ipaddr.IPv4Network(net))
         except:
             self.log.log("RouterNeighbors.hello: "+str(addr)+" sent me an invalid/nonexistant 'nets' field. Could someone please tell me why?!")
             return
@@ -189,9 +179,8 @@ class Router:
             self.lr.delete_multi(self.routes[ip], ip)
 
     def contains(self, new, routes):
-        new = ipaddr.IPv4Network(new)
         for route in routes:
-            if new.overlaps(ipaddr.IPv4Network(route)):
+            if new.overlaps(route):
                 return True
         return False
 
@@ -199,13 +188,15 @@ class Router:
 	if self.contains(route, PROTECTED_NETS):
 	    return False
 
-        route = ipaddr.IPv4Network(route)
         for net in ALLOW_RANGES:
-            if ipaddr.IPv4Network(net).Contains(route):
+            if net.Contains(route):
                 return True
 
 	return False
 
+    # Checks if a route is busy,
+    # False if it is available
+    # ip if it is taken (by another ip)
     def busy(self, route, addr):
         # Walk all 'cept this one and check
         for ip in self.routes:
@@ -215,17 +206,15 @@ class Router:
                 return ip
         return False
 
+    # Check if we own this route
     def owns(self, route):
         return self.contains(route, self.timed.myroutes)
 
-    def has(self, ip, route):
-        if not ip in self.routes:
-            self.routes[ip] = []
-            return False
-
     def setroutes(self, addr, routes):
+        # If this node is new, initialize an empty array
         if not addr in self.routes:
             self.routes[addr] = []
+        # New routes and routes we already have are diffed to know what actions to apply
         new = []
         old = self.routes[addr]
         for route in routes:
@@ -269,8 +258,8 @@ class RouterLocal():
             new = {}
             for k,v in enumerate(l):
                 new[idx[k]] = v
-            dst = cleanup_net(self.dehex(new['Destination'])+"/"+self.dehex(new['Mask']))
-            gw  = cleanup_addr(self.dehex(new['Gateway']))
+            dst = ipaddr.IPv4Network(self.dehex(new['Destination'])+"/"+self.dehex(new['Mask']))
+            gw  = ipaddr.IPv4Address(self.dehex(new['Gateway']))
             self.table[dst] = gw
     
     def dehex(self, ip):
@@ -357,6 +346,17 @@ class MyDaemon(Daemon):
         while True:
             timed.run()
             socks.select()
+
+globalscheck([
+    'UDP_IP', 'UDP_BROADCAST', 'UDP_PORT', 'ALLOW_RANGES', 'PROTECTED_NETS',
+    'syslog_pri', 'syslog_facil', 'routesfile', 'pidfile', 'endian',
+    'hello_interval', 'hello_timeout', 'select_timeout', 'max_ttl'
+])
+
+# ipaddr-ize PROTECTED_NETS, ALLOW_RANGES
+PROTECTED_NETS = [ipaddr.IPv4Network(x) for x in PROTECTED_NETS]
+ALLOW_RANGES   = [ipaddr.IPv4Network(x) for x in ALLOW_RANGES]
+
 
 daemon = MyDaemon(pidfile)
 if len(sys.argv) == 2:
