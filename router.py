@@ -69,14 +69,21 @@ class RouterSockets:
 
     def input(self):
         data, src = self.sock.recvfrom(self.maxin)
-        data = json.loads(data)
+        try:
+            data = json.loads(data)
+        except ValueError:
+            self.log.log("RouterSockets.input: from "+str(src[0])+", failed to read JSON, someone messing with us?")
+            return
+        if not "type" in data:
+            self.log.log("RouterSockets.input: from "+str(src[0])+", json data does not contain the type field.. Stop messing with me!")
+            return
         self.route(src, data)
 
     def out(self, data):
         try:
             self.sock.sendto(json.dumps(data), (UDP_BROADCAST, UDP_PORT))
         except socket.error as e:
-            self.log.log("RouterSockets.out failed: "+e.strerror)
+            self.log.log("RouterSockets.out: failed to send data: "+e.strerror)
 
 # Uses log, socks, neigh
 class RouterTimeds:
@@ -141,8 +148,21 @@ class RouterNeighbors():
 
 
     def hello(self, addr, data):
-        ttl = int(data['ttl'])
-        nets = data['nets']
+        try:
+            ttl = int(data['ttl'])
+        except:
+            self.log.log("RouterNeighbors.hello: "+str(addr)+", you sent me an Invalid/nonexistant 'ttl' field, stop messing with me!")
+            return
+        try:
+            # Code to verify and make it a list of strings
+            netstmp = data['nets']
+            nets = []
+            for net in netstmp:
+                nets.append(str(net))
+        except:
+            self.log.log("RouterNeighbors.hello: "+str(addr)+" sent me an invalid/nonexistant 'nets' field. Could someone please tell me why?!")
+            return
+
         if addr == UDP_IP:
             return
         if ttl < 0:
