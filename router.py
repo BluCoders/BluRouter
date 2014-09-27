@@ -269,7 +269,7 @@ class RouterLocal():
         return ".".join(list(tmp))
 
     def route_add(self, route, gw):
-        argv = ["route", "add", "-net", route, "gw", gw]
+        argv = ["route", "add", "-net", str(route), "gw", str(gw)]
         ret = subprocess.call(argv)
         self.log.log("route_add: "+" ".join(argv)+": "+str(ret))
         if ret != 0:
@@ -278,7 +278,7 @@ class RouterLocal():
             return True
 
     def route_del(self, route, gw):
-        argv = ["route", "del", "-net", route, "gw", gw]
+        argv = ["route", "del", "-net", str(route), "gw", str(gw)]
         ret = subprocess.call(argv)
         self.log.log("route_del: "+" ".join(argv)+": "+str(ret))
         if ret != 0:
