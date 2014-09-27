@@ -158,7 +158,9 @@ class RouterNeighbors():
 
         if addr == UDP_IP:
             return
-        if ttl < 0:
+        if ttl <= 0:
+            # Packet immediately times out on 0 or negative numbers
+            self.log.log("RouterNeighbors.hello: "+str(addr)+" might want to update their ttl to something larger than "+str(ttl)+" seconds.")
             return
         if ttl > max_ttl:
             ttl = max_ttl
