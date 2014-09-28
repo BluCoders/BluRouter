@@ -15,7 +15,6 @@ BluRouter is our own internal routing system (screw quagga-ware...)
 ## TODO
 
 ### Important
-* Some way to catch and syslog python errors (try: except: the main loop perhaps?)
 * command line options (especially: where is our config file?)
 
 ### Wishlist
@@ -24,4 +23,3 @@ BluRouter is our own internal routing system (screw quagga-ware...)
   * In case of network spam, routes.txt can be read very often (after every packet)
   * Potential DoS vulnerability!
   * TODO: use timestamps to make sure it is only read every second
-* Make code look nicer
