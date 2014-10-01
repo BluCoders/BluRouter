@@ -3,16 +3,15 @@
 """ Requires python-ipaddr """
 import subprocess
 import ipaddr
-import socket
-import json
 import time
 import atexit
 import syslog
 import sys
-from select import select
 from daemon import Daemon
 
 from config import *
+
+from RouterSockets import RouterSockets
 
 # TODO:
 # Possibility of binding a neighbor timeout to a callback.
@@ -33,53 +32,6 @@ def diff(a, b):
     b = set(b)
     # Things that are in a only
     return [aa for aa in a if aa not in b]
-
-
-# Uses log, neigh
-class RouterSockets:
-    """
-    RouterProtocol takes input and processes it. It also encodes stuff with json.
-    Can route packets to different destinations within the program, if needed.
-    What to find here: socket in/out/initialization + select
-    """
-    def __init__(self, bufsiz, neigh, log):
-        self.maxin = bufsiz
-        self.neigh = neigh
-        self.log = log
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind((UDP_BROADCAST, UDP_PORT))
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-    def select(self):
-        inr, outr, exr = select([self.sock],[],[], select_timeout)
-        for s in inr:
-            if s == self.sock:
-                self.input()
-
-    def route(self, addr, data):
-        if data['type'] == 'hello':
-            self.neigh.hello(addr[0], data)
-
-    def input(self):
-        data, src = self.sock.recvfrom(self.maxin)
-        if not ipaddr.IPv4Address(src[0]) in UDP_SUBNET:
-            self.log.log("RouterSockets.input: Discarding packet from "+str(src[0])+"")
-            return
-        try:
-            data = json.loads(data)
-        except ValueError:
-            self.log.log("RouterSockets.input: from "+str(src[0])+", failed to read JSON, someone messing with us?")
-            return
-        if not "type" in data:
-            self.log.log("RouterSockets.input: from "+str(src[0])+", json data does not contain the type field.. Stop messing with me!")
-            return
-        self.route(src, data)
-
-    def out(self, data):
-        try:
-            self.sock.sendto(json.dumps(data), (UDP_BROADCAST, UDP_PORT))
-        except socket.error as e:
-            self.log.log("RouterSockets.out: failed to send data: "+e.strerror)
 
 # Uses log, socks, neigh
 class RouterTimeds:
@@ -354,7 +306,7 @@ class MyDaemon(Daemon):
         # max ttl to accept from other hosts
         neigh       = RouterNeighbors(log, router)
         # Max buf size for a single packet. Will limit available routes
-        socks       = RouterSockets(65536, neigh, log)
+        socks       = RouterSockets(65536, neigh, log, UDP_BROADCAST, UDP_PORT, UDP_SUBNET, select_timeout)
         # file with routes separated by newline
         timed       = RouterTimeds(routesfile, log, socks, neigh)
         router.settimed(timed)
