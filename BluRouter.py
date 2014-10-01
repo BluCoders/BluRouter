@@ -30,11 +30,6 @@ def globalscheck(x):
             print "Please define "+y+" in config.py"
             sys.exit(1)
 
-def diff(a, b):
-    b = set(b)
-    # Things that are in a only
-    return [aa for aa in a if aa not in b]
-
 class LogStdout():
     def __init__(self):
         return
@@ -59,9 +54,9 @@ class MyDaemon(Daemon):
         else:
             log = LogSyslog(syslog_facil, syslog_pri)
         localrouter = RouterLocal(log, endian)
-        router      = Router(localrouter, log)
+        router      = Router(localrouter, log, newip_sendnets, PROTECTED_NETS, ALLOW_RANGES)
         # max ttl to accept from other hosts
-        neigh       = RouterNeighbors(log, router, UDP_IP)
+        neigh       = RouterNeighbors(log, router, UDP_IP, max_ttl)
         # Max buf size for a single packet. Will limit available routes
         socks       = RouterSockets(65536, neigh, log, UDP_BROADCAST, UDP_PORT, UDP_SUBNET, select_timeout)
         # file with routes separated by newline

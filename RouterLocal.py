@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import ipaddr
+import subprocess
 
 # Uses log
 class RouterLocal():

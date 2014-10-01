@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+import ipaddr
 
 # Uses log, socks, neigh
 class RouterTimeds:
@@ -26,7 +27,7 @@ class RouterTimeds:
             f = open(self.routefile, "r")
             l = sorted([ipaddr.IPv4Network(i.strip()) for i in f.readlines()])
             f.close()
-        except:
+        except Exception as e:
             self.log.log("readroutes: "+self.routefile+" is trapped in another dimension..")
             return
 

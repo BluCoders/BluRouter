@@ -1,12 +1,21 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# Method to create a list of the things that are in a but not in b
+def diff(a, b):
+    b = set(b)
+    return [aa for aa in a if aa not in b]
+
 # Uses log
 class Router:
-    def __init__(self, localrouter, log):
+    def __init__(self, localrouter, log, newip_sendnets, protected_nets, allow_ranges):
         self.routes = {}
         self.log = log
         self.lr = localrouter
+        self.newip_sendnets = newip_sendnets
+        self.protected_nets = protected_nets
+        self.allow_ranges = allow_ranges
+
     def settimed(self, timed):
         self.timed = timed
     def shutdown(self):
@@ -20,10 +29,10 @@ class Router:
         return False
 
     def checkranges(self, route):
-	if self.contains(route, PROTECTED_NETS):
+	if self.contains(route, self.protected_nets):
 	    return False
 
-        for net in ALLOW_RANGES:
+        for net in self.allow_ranges:
             if net.Contains(route):
                 return True
 
@@ -49,7 +58,7 @@ class Router:
         # If this node is new, initialize an empty array
         if not addr in self.routes:
             self.routes[addr] = []
-            if newip_sendnets:
+            if self.newip_sendnets:
                 self.timed.hello()
         # New routes and routes we already have are diffed to know what actions to apply
         new = []
