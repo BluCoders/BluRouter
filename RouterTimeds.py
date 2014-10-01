@@ -4,20 +4,16 @@
 import time
 import ipaddr
 
-# Uses log, socks, neigh
+# Uses log, socks
 class RouterTimeds:
     """
-    RouterTimeds contains the code we run mostly every second.
-    It is responsible for:
-     - propagating the routes file (sending hello)
-     - calling RouterNeighbors run function to time out neighbors
+    RouterTimeds is responsible for propagating our routes
     """
     myroutes = []
-    def __init__(self, myroutefile, log, socks, neigh, hello_interval, myttl):
+    def __init__(self, log, socks, myroutefile, hello_interval, myttl):
         self.routefile = myroutefile
         self.log = log
         self.socks = socks
-        self.neigh = neigh
         self.last_hello = 0
         self.myttl = myttl
         self.hello_interval = hello_interval
@@ -38,16 +34,13 @@ class RouterTimeds:
             self.last_hello = ts
 
     def run(self):
-        ts = self.ts()
+        ts = time.time()
         self.readroutes(ts)
-        self.neigh.run()
 
         if (ts-self.last_hello) >= self.hello_interval:
             self.hello()
             self.last_hello = ts
+
     def hello(self):
         """When this is called, it is time to broadcast our existence"""
         self.socks.out({'type':'hello', 'ttl':str(self.myttl), 'nets':[str(x) for x in self.myroutes]})
-
-    def ts(self):
-        return time.time()

@@ -13,7 +13,7 @@ class RouterSockets:
     Can route packets to different destinations within the program, if needed.
     What to find here: socket in/out/initialization + select
     """
-    def __init__(self, bufsiz, neigh, log, broadcast, port, subnet, timeout):
+    def __init__(self, log, neigh, bufsiz, broadcast, port, subnet, timeout):
         self.maxin     = bufsiz
         self.neigh     = neigh
         self.log       = log

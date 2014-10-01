@@ -6,12 +6,17 @@ import ipaddr
 
 # Uses log, router
 class RouterNeighbors():
-    timer = {}
+    """
+    RouterNeighbors does two things:
+     - Remove expired neighbors
+     - Process packets from neighbors
+    """
     def __init__(self, log, router, myip, max_ttl):
-        self.log = log
-        self.router = router
-        self.myip = myip
+        self.log     = log
+        self.router  = router
+        self.myip    = myip
         self.max_ttl = max_ttl
+        self.timer   = {}
 
     def run(self):
         """ Remove expired neighbors """
@@ -54,7 +59,7 @@ class RouterNeighbors():
         if ttl > self.max_ttl:
             ttl = self.max_ttl
 
-        until = ttl+self.ts()
+        until            = ttl+self.ts()
         self.timer[addr] = until
         self.router.setroutes(addr, nets)
     def ts(self):

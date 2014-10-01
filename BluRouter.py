@@ -8,11 +8,12 @@ from daemon import Daemon
 
 from config import *
 
-from RouterTimeds    import RouterTimeds
-from RouterNeighbors import RouterNeighbors
-from RouterSockets   import RouterSockets
-from RouterLocal     import RouterLocal
-from Router          import Router
+from RouterTimeds    import RouterTimeds    # Propagate our routes
+from RouterNeighbors import RouterNeighbors # Set up and time out neighbors
+from RouterSockets   import RouterSockets   # get messages from the socket
+# TODO: RouterLocal code moved into Router
+from RouterLocal     import RouterLocal     # Administer the kernel routing table
+from Router          import Router          # Filter the added routes for security, keep track of routes
 
 
 # TODO:
@@ -49,23 +50,30 @@ def unload(router):
 
 class MyDaemon(Daemon):
     def run(self, foreground=False):
+        # Set up logging
         if foreground:
             log = LogStdout()
         else:
             log = LogSyslog(syslog_facil, syslog_pri)
-        localrouter = RouterLocal(log, endian)
-        router      = Router(localrouter, log, newip_sendnets, PROTECTED_NETS, ALLOW_RANGES)
-        # max ttl to accept from other hosts
-        neigh       = RouterNeighbors(log, router, UDP_IP, max_ttl)
-        # Max buf size for a single packet. Will limit available routes
-        socks       = RouterSockets(65536, neigh, log, UDP_BROADCAST, UDP_PORT, UDP_SUBNET, select_timeout)
-        # file with routes separated by newline
-        timed       = RouterTimeds(routesfile, log, socks, neigh, hello_interval, hello_timeout)
+        # Localrouter is our connection to the kernel routing table.
+        # TODO: make it poll that table and fight changes
+
+        localrouter = RouterLocal    (log, endian)
+        # router(localrouter, timed)
+        router      = Router         (log, localrouter, newip_sendnets, PROTECTED_NETS, ALLOW_RANGES)
+        # neigh (router)
+        neigh       = RouterNeighbors(log, router,      UDP_IP,         max_ttl)
+        # socks (neigh)
+        socks       = RouterSockets  (log, neigh,       65536,          UDP_BROADCAST,  UDP_PORT,    UDP_SUBNET, select_timeout)
+        # timed (socks)
+        timed       = RouterTimeds   (log, socks,       routesfile,     hello_interval, hello_timeout)
+
         router.settimed(timed)
 
         atexit.register(unload, router)
         while True:
             timed.run()
+            neigh.run()
             socks.select()
 
 globalscheck([
