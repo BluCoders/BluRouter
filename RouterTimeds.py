@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import time
 import ipaddr
 
 # Uses log, socks
@@ -33,8 +32,10 @@ class RouterTimeds:
             self.hello()
             self.last_hello = ts
 
-    def run(self):
-        ts = time.time()
+    def compensate(self, diff):
+        self.last_hello += diff
+
+    def run(self, ts):
         self.readroutes(ts)
 
         if (ts-self.last_hello) >= self.hello_interval:

@@ -4,6 +4,7 @@
 import ipaddr
 import atexit
 import sys
+import time
 
 from config import *
 
@@ -69,11 +70,26 @@ class MyDaemon(Daemon):
         timed       = RouterTimeds   (log, socks,       routesfile,     hello_interval, hello_timeout)
 
         router.settimed(timed)
-
         atexit.register(unload, router)
+
+        # Sensible to assume 2*select timeout + 1 second as
+        # maximum time difference per round
+        maxdiff = select_timeout*2+1
+        ts = None
+
         while True:
-            timed.run()
-            neigh.run()
+            oldts = ts
+            ts = time.time()
+            if oldts:
+                diff = ts-oldts
+                if diff < 0 or diff > maxdiff:
+                    log.log("Jumped in time by at least " +str(diff)+" seconds")
+                    timed.compensate(diff)
+                    neigh.compensate(diff)
+                #else:
+                    #log.log("Normal time difference: "+str(diff)+" seconds")
+            timed.run(ts)
+            neigh.run(ts)
             socks.select()
 
 globalscheck([

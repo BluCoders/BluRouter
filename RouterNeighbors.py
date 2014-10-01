@@ -18,9 +18,13 @@ class RouterNeighbors():
         self.max_ttl = max_ttl
         self.timer   = {}
 
-    def run(self):
+    def compensate(self, diff):
+        for ip in self.timer:
+            self.timer[ip] += diff
+
+
+    def run(self, ts):
         """ Remove expired neighbors """
-        ts = self.ts()
         delete = []
         for ip in self.timer:
             until = self.timer[ip]
@@ -59,8 +63,6 @@ class RouterNeighbors():
         if ttl > self.max_ttl:
             ttl = self.max_ttl
 
-        until            = ttl+self.ts()
+        until            = ttl+time.time()
         self.timer[addr] = until
         self.router.setroutes(addr, nets)
-    def ts(self):
-        return time.time()
