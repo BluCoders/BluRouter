@@ -4,10 +4,10 @@
 import ipaddr
 import atexit
 import sys
-from daemon import Daemon
 
 from config import *
 
+from Daemon import Daemon
 from RouterTimeds    import RouterTimeds    # Propagate our routes
 from RouterNeighbors import RouterNeighbors # Set up and time out neighbors
 from RouterSockets   import RouterSockets   # get messages from the socket
@@ -77,15 +77,18 @@ class MyDaemon(Daemon):
             socks.select()
 
 globalscheck([
-    'UDP_IP', 'UDP_SUBNET', 'UDP_BROADCAST', 'UDP_PORT', 'ALLOW_RANGES', 'PROTECTED_NETS',
-    'syslog_pri', 'syslog_facil', 'routesfile', 'pidfile', 'endian',
-    'hello_interval', 'hello_timeout', 'select_timeout', 'max_ttl', 'newip_sendnets'
+    'UDP_IP',        'UDP_SUBNET',     'UDP_BROADCAST',
+    'UDP_PORT',      'ALLOW_RANGES',   'PROTECTED_NETS',
+    'syslog_pri',    'syslog_facil',   'routesfile',
+    'pidfile',       'endian',         'hello_interval',
+    'hello_timeout', 'select_timeout', 'max_ttl',
+    'newip_sendnets'
 ])
 
 # ipaddr-ize PROTECTED_NETS, ALLOW_RANGES
 PROTECTED_NETS = [ipaddr.IPv4Network(x) for x in PROTECTED_NETS]
 ALLOW_RANGES   = [ipaddr.IPv4Network(x) for x in ALLOW_RANGES]
-UDP_SUBNET = ipaddr.IPv4Network(UDP_SUBNET)
+UDP_SUBNET     = ipaddr.IPv4Network(UDP_SUBNET)
 
 
 daemon = MyDaemon(pidfile)

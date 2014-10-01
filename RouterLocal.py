@@ -10,9 +10,9 @@ import subprocess
 class RouterLocal():
     def __init__(self, log, endian):
         self.endian = endian
-        self.log = log
+        self.log    = log
+        self.table  = {}
         self.get_kernel_table()
-        self.table = {}
 
     def get_kernel_table(self):
         f = open("/proc/net/route", "r")
