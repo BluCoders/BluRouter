@@ -83,11 +83,9 @@ class MyDaemon(Daemon):
             if oldts:
                 diff = ts-oldts
                 if diff < 0 or diff > maxdiff:
-                    log.log("Jumped in time by at least " +str(diff)+" seconds")
+                    log.log("Jumped in time by " +str(diff)+" seconds")
                     timed.compensate(diff)
                     neigh.compensate(diff)
-                #else:
-                    #log.log("Normal time difference: "+str(diff)+" seconds")
             timed.run(ts)
             neigh.run(ts)
             socks.select()
