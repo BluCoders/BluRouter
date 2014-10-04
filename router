@@ -8,13 +8,13 @@ import time
 
 from config import *
 
-from Daemon import Daemon
-from RouterTimeds    import RouterTimeds    # Propagate our routes
-from RouterNeighbors import RouterNeighbors # Set up and time out neighbors
-from RouterSockets   import RouterSockets   # get messages from the socket
+from inc.Daemon          import Daemon
+from inc.RouterTimeds    import RouterTimeds    # Propagate our routes
+from inc.RouterNeighbors import RouterNeighbors # Set up and time out neighbors
+from inc.RouterSockets   import RouterSockets   # get messages from the socket
 # TODO: RouterLocal code moved into Router
-from RouterLocal     import RouterLocal     # Administer the kernel routing table
-from Router          import Router          # Filter the added routes for security, keep track of routes
+from inc.RouterLocal     import RouterLocal     # Administer the kernel routing table
+from inc.Router          import Router          # Filter the added routes for security, keep track of routes
 
 
 # TODO:
