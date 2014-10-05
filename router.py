@@ -44,9 +44,9 @@ class MyDaemon(Daemon):
             log = LogStdout()
         else:
             log = LogSyslog(conf)
+
         # Localrouter is our connection to the kernel routing table.
         # TODO: make it poll that table and fight changes
-
         localrouter = RouterLocal    (log, conf)
         router      = Router         (log, localrouter, conf)
         neigh       = RouterNeighbors(log, router,      conf)

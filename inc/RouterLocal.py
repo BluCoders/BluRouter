@@ -3,15 +3,15 @@
 
 import ipaddr
 import subprocess
+import struct
 
 # Uses log
 # TODO a function that adds the missing routes (we'll make a dict of the routes we want)
 # TODO when above is done, make it deinit itself
 class RouterLocal():
-    def __init__(self, log, conf):
-        self.conf  = conf
-        self.log   = log
-        self.table = {}
+    def __init__(self, log):
+        self.log    = log
+        self.table  = {}
         self.get_kernel_table()
 
     def get_kernel_table(self):
@@ -31,10 +31,20 @@ class RouterLocal():
             self.table[dst] = gw
     
     def dehex(self, ip):
-        tmp = [str(int(ip[i:i+2], 16)) for i in range(0, len(ip), 2)]
-        if self.conf["endian"] == 0:
-            tmp = reversed(tmp)
-        return ".".join(list(tmp))
+        # Convert from hex to binary
+        tmp = "".join([chr(int(ip[i:i+2], 16)) for i in range(0, len(ip), 2)])
+        # Convert from binary to int (taking native byte order in account)
+        tmp = struct.unpack('I', tmp)[0]
+        # Convert to usable representation
+        tmp = [
+            (tmp>>24)&0xff,
+            (tmp>>16)&0xff,
+            (tmp>>8 )&0xff,
+            (tmp    )&0xff
+        ]
+        # Stringify and return
+        tmp = ".".join([str(x) for x in tmp])
+        return tmp
 
     def route_add(self, route, gw):
         argv = ["route", "add", "-net", str(route), "gw", str(gw)]
