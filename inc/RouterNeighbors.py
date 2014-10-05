@@ -11,12 +11,11 @@ class RouterNeighbors():
      - Remove expired neighbors
      - Process packets from neighbors
     """
-    def __init__(self, log, router, myip, max_ttl):
-        self.log     = log
-        self.router  = router
-        self.myip    = myip
-        self.max_ttl = max_ttl
-        self.timer   = {}
+    def __init__(self, log, router, conf):
+        self.log    = log
+        self.router = router
+        self.conf   = conf
+        self.timer  = {}
 
     def compensate(self, diff):
         for ip in self.timer:
@@ -54,14 +53,14 @@ class RouterNeighbors():
             self.log.log("RouterNeighbors.hello: "+str(addr)+" sent me an invalid/nonexistant 'nets' field. Could someone please tell me why?!")
             return
 
-        if addr == self.myip:
+        if ipaddr.IPv4Address(addr) == self.conf["udp_ip"]:
             return
         if ttl <= 0:
             # Packet immediately times out on 0 or negative numbers
             self.log.log("RouterNeighbors.hello: "+str(addr)+" might want to update their ttl to something larger than "+str(ttl)+" seconds.")
             return
-        if ttl > self.max_ttl:
-            ttl = self.max_ttl
+        if ttl > self.conf["max_ttl"]:
+            ttl = self.conf["max_ttl"]
 
         until            = ttl+time.time()
         self.timer[addr] = until
