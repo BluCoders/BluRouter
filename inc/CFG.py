@@ -29,7 +29,6 @@ class CFG:
             "syslog_facil":   self.syslog_facil(),
             "routefile":      self.routefile(),
             "pidfile":        self.pidfile(),
-            "endian":         self.endian(),
             "hello_interval": self.hello_interval(),
             "hello_timeout":  self.hello_timeout(),
             "select_timeout": self.select_timeout(),
@@ -135,12 +134,6 @@ class CFG:
             return self.cfg.get(self.sect, "pidfile").strip()
         except Exception as e:
             self._reraise("pidfile", e)
-
-    def endian(self):
-        try:
-            return self.cfg.getboolean(self.sect, "endian")
-        except Exception as e:
-            self._reraise("endian", e)
 
     def hello_interval(self):
         try:

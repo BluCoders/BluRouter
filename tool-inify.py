@@ -53,8 +53,6 @@ with open('config.ini', 'w') as out:
     out.write("routefile      = "+str(config.routesfile)          +"\n")
     out.write("pidfile        = "+str(config.pidfile)             +"\n\n")
 
-    out.write("endian         = "+str(config.endian)              +"\n\n")
-
     out.write("hello_interval = "+str(config.hello_interval)      +"\n")
     out.write("hello_timeout  = "+str(config.hello_timeout)       +"\n")
     out.write("select_timeout = "+str(config.select_timeout)      +"\n")
