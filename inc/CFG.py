@@ -82,7 +82,6 @@ class CFG:
 
     def syslog_pri(self):
         m = {
-            "log_notice":   syslog.LOG_NOTICE,
             "log_emerg":    syslog.LOG_EMERG,
             "log_alert":    syslog.LOG_ALERT,
             "log_crit":     syslog.LOG_CRIT,
