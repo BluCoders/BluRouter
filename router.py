@@ -5,6 +5,7 @@ import atexit       # script exit handlers
 import sys          # sys.exit, sys.argv
 import time         # time.time()
 import getopt       # getopt.getopt()
+import syslog       # LogSyslog
 
 from inc.CFG             import CFG             # Configuration file reader
 from inc.Daemon          import Daemon          # Daemon tool
@@ -27,11 +28,11 @@ class LogStdout():
         print "Log: "+str(x)
 
 class LogSyslog():
-    def __init__(self, fac, priority, idn="BluRouter"):
-        syslog.openlog(facility=fac, ident=idn)
-        self.pri = priority
+    def __init__(self, conf, idn="BluRouter"):
+        self.conf = conf
+        syslog.openlog(facility=conf["syslog_facil"], ident=idn)
     def log(self, x):
-        syslog.syslog(self.pri, x)
+        syslog.syslog(self.conf["syslog_pri"], x)
 
 def unload(router):
     router.shutdown()
@@ -42,7 +43,7 @@ class MyDaemon(Daemon):
         if foreground:
             log = LogStdout()
         else:
-            log = LogSyslog(syslog_facil, syslog_pri)
+            log = LogSyslog(conf)
         # Localrouter is our connection to the kernel routing table.
         # TODO: make it poll that table and fight changes
 
