@@ -8,10 +8,10 @@ import subprocess
 # TODO a function that adds the missing routes (we'll make a dict of the routes we want)
 # TODO when above is done, make it deinit itself
 class RouterLocal():
-    def __init__(self, log, endian):
-        self.endian = endian
-        self.log    = log
-        self.table  = {}
+    def __init__(self, log, conf):
+        self.conf  = conf
+        self.log   = log
+        self.table = {}
         self.get_kernel_table()
 
     def get_kernel_table(self):
@@ -32,7 +32,7 @@ class RouterLocal():
     
     def dehex(self, ip):
         tmp = [str(int(ip[i:i+2], 16)) for i in range(0, len(ip), 2)]
-        if self.endian == 0:
+        if self.conf["endian"] == 0:
             tmp = reversed(tmp)
         return ".".join(list(tmp))
 
