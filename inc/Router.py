@@ -12,13 +12,11 @@ class Router:
     Mainly exports setroutes and delroutes
     Router polices who gets which IP ranges
     """
-    def __init__(self, log, localrouter, newip_sendnets, protected_nets, allow_ranges):
+    def __init__(self, log, localrouter, conf):
         self.routes = {}
-        self.log = log
-        self.lr = localrouter
-        self.newip_sendnets = newip_sendnets
-        self.protected_nets = protected_nets
-        self.allow_ranges = allow_ranges
+        self.log    = log
+        self.lr     = localrouter
+        self.conf   = conf
 
     def settimed(self, timed):
         self.timed = timed
@@ -37,14 +35,14 @@ class Router:
 
     # Check if the route is in protected nets or not in allow_ranges
     def checkranges(self, route):
-	if self.contains(route, self.protected_nets):
-	    return False
+        if self.contains(route, self.conf["protected_nets"]):
+            return False
 
-        for net in self.allow_ranges:
+        for net in self.conf["allow_ranges"]:
             if net.Contains(route):
                 return True
 
-	return False
+        return False
 
     def busy(self, route, addr):
         """
@@ -63,12 +61,13 @@ class Router:
         """ Are we the owners of route """
         return self.contains(route, self.timed.myroutes)
 
+    """ Setroutes called with a string address """
     def setroutes(self, addr, routes):
         """ Takes an address and a list of routes, tries to route those routes through addr """
         # If this node is new, initialize an empty array
         if not addr in self.routes:
             self.routes[addr] = []
-            if self.newip_sendnets:
+            if self.conf["newip_sendnets"]:
                 self.timed.hello()
         # New routes and routes we already have are diffed to know what actions to apply
         new = []

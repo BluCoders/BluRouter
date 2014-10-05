@@ -13,20 +13,18 @@ class RouterSockets:
     Can route packets to different destinations within the program, if needed.
     What to find here: socket in/out/initialization + select
     """
-    def __init__(self, log, neigh, bufsiz, broadcast, port, subnet, timeout):
-        self.maxin     = bufsiz
-        self.neigh     = neigh
-        self.log       = log
-        self.sock      = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.broadcast = broadcast
-        self.port      = port
-        self.subnet    = subnet
-        self.timeout   = timeout
-        self.sock.bind((broadcast, port))
+    def __init__(self, log, neigh, bufsiz, conf):
+        self.maxin = bufsiz
+        self.neigh = neigh
+        self.log   = log
+        self.sock  = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.conf  = conf
+
+        self.sock.bind((str(conf["udp_broadcast"]), conf["udp_port"]))
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     def select(self):
-        inr, outr, exr = select([self.sock],[],[], self.timeout)
+        inr, outr, exr = select([self.sock],[],[], self.conf["select_timeout"])
         for s in inr:
             if s == self.sock:
                 self.input()
@@ -37,7 +35,7 @@ class RouterSockets:
 
     def input(self):
         data, src = self.sock.recvfrom(self.maxin)
-        if not ipaddr.IPv4Address(src[0]) in self.subnet:
+        if not ipaddr.IPv4Address(src[0]) in self.conf["udp_subnet"]:
             self.log.log("RouterSockets.input: Discarding packet from "+str(src[0])+"")
             return
         try:
@@ -52,6 +50,6 @@ class RouterSockets:
 
     def out(self, data):
         try:
-            self.sock.sendto(json.dumps(data), (self.broadcast, self.port))
+            self.sock.sendto(json.dumps(data), (str(self.conf["udp_broadcast"]), self.conf["udp_port"]))
         except socket.error as e:
             self.log.log("RouterSockets.out: failed to send data: "+e.strerror)

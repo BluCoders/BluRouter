@@ -2,6 +2,10 @@
 
 BluRouter is our own internal routing system (screw quagga-ware...)
 
+# Changes
+* Switching config.py to config.ini
+ * python tool-inify.py reads config.py and writes config.ini
+
 # Howto
 
 * Edit the config-example.py exactly as you need it, then save as config.py
