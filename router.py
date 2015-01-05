@@ -6,6 +6,7 @@ import sys          # sys.exit, sys.argv
 import time         # time.time()
 import getopt       # getopt.getopt()
 import syslog       # LogSyslog
+import os           # Current directory
 
 from inc.CFG             import CFG             # Configuration file reader
 from inc.Daemon          import Daemon          # Daemon tool
@@ -90,6 +91,9 @@ try:
     configfile = opts[0][1]
 except Exception:
     configfile = 'config.ini'
+
+if configfile[0] != '/':
+    configfile = os.path.dirname(os.path.abspath(__file__)) + "/" + configfile
 
 cfg  = CFG()
 conf = cfg.read(configfile)
