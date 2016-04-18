@@ -9,8 +9,9 @@ import struct
 # TODO a function that adds the missing routes (we'll make a dict of the routes we want)
 # TODO when above is done, make it deinit itself
 class RouterLocal():
-    def __init__(self, log):
+    def __init__(self, log, conf):
         self.log    = log
+        self.conf   = conf
         self.table  = {}
         self.get_kernel_table()
 
@@ -47,7 +48,10 @@ class RouterLocal():
         return tmp
 
     def route_add(self, route, gw):
-        argv = ["route", "add", "-net", str(route), "gw", str(gw)]
+        argv = ["route", "add", "-net",
+                str(route),
+                "gw", str(gw),
+                "metric", str(self.conf["metric"])]
         ret = subprocess.call(argv)
         self.log.log("route_add: "+" ".join(argv)+": "+str(ret))
         if ret != 0:

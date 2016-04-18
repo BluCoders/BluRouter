@@ -33,7 +33,8 @@ class CFG:
             "hello_timeout":  self.hello_timeout(),
             "select_timeout": self.select_timeout(),
             "max_ttl":        self.max_ttl(),
-            "newip_sendnets": self.newip_sendnets()
+            "newip_sendnets": self.newip_sendnets(),
+            "metric":         self.metric()
         }
         return out
 
@@ -152,6 +153,12 @@ class CFG:
             return self.cfg.getint(self.sect, "select_timeout")
         except Exception as e:
             self._reraise("select_timeout", e)
+    
+    def metric(self):
+        try:
+            return self.cfg.getint(self.sect, "metric")
+        except Exception as e:
+            self._reraise("metric", e)
 
     def max_ttl(self):
         try:
